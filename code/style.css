@@ -1,0 +1,25 @@
+/* 整个页面宽度 */
+.main-container {
+    max-width: 1100px;
+}
+
+
+/* 代码块样式 */
+pre {
+    font-size: 14px;
+    line-height: 1.6;
+    padding: 15px;
+    border-radius: 8px;
+}
+
+
+/* 代码字体 */
+code {
+    font-family: Consolas, "Courier New", monospace;
+}
+
+
+/* 标题字体 */
+h1, h2, h3 {
+    font-weight: 600;
+}
