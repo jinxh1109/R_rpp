@@ -119,6 +119,11 @@ mbayes_bound_condition_congruency_nocongruency[[5]] <- brm(a ~ conditionEC + (1 
 # bridge sampling bayes factors
 compute_bfs(mbayes_bound_condition_congruency, mbayes_bound_condition_congruency_nocongruency)
 
+
+
+
+
+
 # ===== Figure: Posterior Distribution of Condition Effect on Boundary =====
 
 library(posterior)
@@ -139,39 +144,47 @@ posterior_df <- data.frame(
 # --- Calculate prior density (informed normal) ---
 prior_mean <- prior_coef
 prior_sd <- abs(prior_coef / 2)
-prior_x <- seq(min(posterior_density$x), max(posterior_density$x), length.out = 512)
+
+# Extend x-range to cover the full prior distribution
+prior_x_full <- seq(prior_mean - 4 * prior_sd, prior_mean + 4 * prior_sd, length.out = 512)
+combined_range <- range(c(posterior_density$x, prior_x_full))
+prior_x <- seq(combined_range[1], combined_range[2], length.out = 512)
+
 prior_df <- data.frame(
     estimate = prior_x,
     density = dnorm(prior_x, mean = prior_mean, sd = prior_sd)
 )
 
-# --- Extract BF from 3-level model ---
-hypo_3level <- brms::hypothesis(
-    mbayes_bound_condition_congruency[[5]],
-    "conditionEC = 0"
-)
-bf_value <- round(1 / hypo_3level$hypothesis$Evid.Ratio, 2)
+# --- Read BF from bridge sampling results file ---
+bf_file <- "brms_models/mbayes_bound_condition_congruency_study_all__mbayes_bound_condition_congruency_study_all_nocondition.txt"
+bf_lines <- readLines(bf_file)
+bf_value <- round(as.numeric(bf_lines[length(bf_lines)]), 2)
 
 # --- Create the plot ---
 p_boundary <- ggplot() +
     # Prior distribution (light blue, broader)
-    geom_area(data = prior_df, aes(x = estimate, y = density),
-              fill = "#A6CEE3", alpha = 0.6, color = "#A6CEE3", linewidth = 0.3) +
+    geom_area(data = prior_df, aes(x = estimate, y = density, fill = "Prior Distribution"),
+              alpha = 0.6, color = "#A6CEE3", linewidth = 0.3) +
     # Posterior distribution (dark blue, narrower)
-    geom_area(data = posterior_df, aes(x = estimate, y = density),
-              fill = "#1F78B4", alpha = 0.8, color = "#1F78B4", linewidth = 0.3) +
+    geom_area(data = posterior_df, aes(x = estimate, y = density, fill = "Posterior Distribution"),
+              alpha = 0.8, color = "#1F78B4", linewidth = 0.3) +
     # Reference line at 0
     geom_vline(xintercept = 0, linetype = "dashed", color = "gray40", linewidth = 0.8) +
     # BF annotation
-    annotate("text", x = min(posterior_df$estimate) * 0.8,
+    annotate("text", x = min(posterior_df$estimate) * 2,
              y = max(posterior_df$density) * 0.9,
              label = paste0("BF = ", bf_value),
              size = 5, hjust = 0) +
+    # Scale: manual fill colors and legend
+    scale_fill_manual(name = "Distribution",
+                      values = c("Prior Distribution" = "#A6CEE3",
+                                 "Posterior Distribution" = "#1F78B4")) +
     # Labels and theme
     labs(title = "Effect of Condition on Boundary",
          x = "Estimate", y = "Density") +
     theme_classic(base_size = 14) +
-    theme(plot.title = element_text(hjust = 0.5, face = "bold"))
+    theme(plot.title = element_text(hjust = 0.5, face = "bold"),
+          legend.position = "right")
 
 # --- Save the figure ---
 dir.create("Figures", showWarnings = FALSE)
